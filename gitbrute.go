@@ -78,12 +78,35 @@ func main() {
 	w := <-winner
 	close(done)
 
+	// extract author/committer names and emails from the original object
+	authorName, authorEmail := parsePerson(obj, authorPersonRx)
+	committerName, committerEmail := parsePerson(obj, committerPersonRx)
+
 	cmd := exec.Command("git", "commit", "--allow-empty", "--amend", "--date="+w.author.String(), "--file=-")
-	cmd.Env = append(os.Environ(), "GIT_COMMITTER_DATE="+w.committer.String())
-	cmd.Stdout = os.Stdout
+	// set env so git uses original identities and dates
+	env := os.Environ()
+	env = append(env, "GIT_COMMITTER_DATE="+w.committer.String())
+	if committerName != "" {
+		env = append(env, "GIT_COMMITTER_NAME="+committerName)
+	}
+	if committerEmail != "" {
+		env = append(env, "GIT_COMMITTER_EMAIL="+committerEmail)
+	}
+	if authorName != "" {
+		env = append(env, "GIT_AUTHOR_NAME="+authorName)
+	}
+	if authorEmail != "" {
+		env = append(env, "GIT_AUTHOR_EMAIL="+authorEmail)
+	}
+	env = append(env, "GIT_AUTHOR_DATE="+w.author.String())
+	cmd.Env = env
 	cmd.Stdin = bytes.NewReader(msg)
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("amend: %v", err)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("amend failed: %v\n%s", err, out)
+	}
+	if len(out) > 0 {
+		os.Stdout.Write(out)
 	}
 }
 
@@ -94,6 +117,8 @@ type solution struct {
 var (
 	authorDateRx    = regexp.MustCompile(`(?m)^author.+> (.+)`)
 	committerDateRx = regexp.MustCompile(`(?m)^committer.+> (.+)`)
+	authorPersonRx   = regexp.MustCompile(`(?m)^author (.+?) <(.+?)> `)
+	committerPersonRx= regexp.MustCompile(`(?m)^committer (.+?) <(.+?)> `)
 )
 
 func bruteForce(obj []byte, winner chan<- solution, possibilities <-chan try, done <-chan struct{}) {
@@ -211,4 +236,15 @@ func hexInPlace(v []byte) []byte {
 		h[i*2+1] = hex[b&0xf]
 	}
 	return h
+}
+
+// parsePerson extracts name and email from a commit-like header.
+func parsePerson(h []byte, rx *regexp.Regexp) (name, email string) {
+	m := rx.FindSubmatch(h)
+	if m == nil || len(m) < 3 {
+		return "", ""
+	}
+	name = string(m[1])
+	email = string(m[2])
+	return
 }

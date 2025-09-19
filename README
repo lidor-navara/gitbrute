@@ -1,15 +1,17 @@
-gitbrute brute-forces a pair of author+committer timestamps such that
-the resulting git commit has your desired prefix.
+gitbrute
+========
+Find git commits with a chosen SHA-1 prefix by bruteforcing author/committer timestamps.
 
-It will find the most recent time that satisfies your prefix.
+Prerequisites: Docker or Go, and a git repository with at least one commit.
 
-Shorter prefixes match more quickly, of course. The author &
-committer timestamp are not kept in sync.
+# Quick examples
 
-Example: https://github.com/bradfitz/deadbeef
+# 1) Docker (recommended)
+# create a test commit first:
+# git init && git -c user.name=test -c user.email=test@test.com commit --allow-empty -m test
+docker run --rm -it -u "$(id -u):$(id -g)" -v "$(pwd)":/workdir -w /workdir ghcr.io/lidor-navara/gitbrute:latest --prefix 00
 
-Usage:
+# 2) Local (built) runner
+./run.sh -- -prefix 0000
 
-    go run gitbrute.go --prefix 000000
-
-This amends the last commit of the current repository.
+Build: ./build.sh

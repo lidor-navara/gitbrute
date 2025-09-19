@@ -1,0 +1,20 @@
+{
+  "name": "gitbrute-dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "settings": {
+    "go.toolsManagement.autoUpdate": true
+  },
+  "postCreateCommand": "go version || true",
+  "remoteUser": "root"
+}
